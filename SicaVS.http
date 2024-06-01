@@ -1,0 +1,6 @@
+@SicaVS_HostAddress = http://localhost:5133
+
+GET {{SicaVS_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
