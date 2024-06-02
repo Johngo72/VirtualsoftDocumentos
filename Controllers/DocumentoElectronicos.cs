@@ -31,7 +31,7 @@ namespace SicaVS.Controllers
             _configutation = configuration;
         }
 
-        [Authorize]
+        // [Authorize]
         [HttpPost]
         [Route("enviar")]
         public dynamic enviarDocumento(InfDocumento DocInf)
@@ -79,9 +79,20 @@ namespace SicaVS.Controllers
             invoice.ID = new IDType { Value = DocInf.CodigoDocumento };
             invoice.IssueDate = new IssueDateType { Value = DateTime.Now };
             invoice.DocumentCurrencyCode = new DocumentCurrencyCodeType { Value = "USD" };
-
+            
             invoice.TotalFactura = new TotalFacturaType { Value = 300000 };
+            InvoiceHelper invoiceHelper = new InvoiceHelper();
+            InvoiceFact item = new InvoiceFact() {
+                Nzona = "01",
+                Frtfte = "Frt",
+                Frtfteiva = "0.5",
+                factind = 1,
+                Fechaini = "2021/05/10",
+                Fechafin = "2021/06/11",
+                PrefijoFact = "1212441"
 
+            };
+            invoiceHelper.CreateInvoice(1212124, item, ref invoice);
             // Crear y asignar las líneas de la factura
             InvoiceLineType line1 = new InvoiceLineType
             {

@@ -1,7 +1,11 @@
-﻿namespace SicaVS.Modelos
+﻿using SicaVS.Objectos.XMLExtension;
+
+namespace SicaVS.Modelos
 {
     public class InvoiceType
     {
+        public UBLExtensionType[] UBLExtensions;
+        public UBLVersionIDType uBLVersionIDField;
 
         private IDType idField;
         private IssueDateType issueDateField;
