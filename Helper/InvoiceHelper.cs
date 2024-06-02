@@ -986,8 +986,6 @@ namespace SicaVS.Helper
                 //Serialize to Xml file
                 XmlSerializeToFile(Invoice, namespaces, RUTAGUARDAR + "fv" + NOMBREXML + consecutivoArchivo.ToString().PadLeft(8, '0') + "B.xml");
 
-
-
                 // crear instancia
                 /* var firma = new FirmaElectronica
                 {
