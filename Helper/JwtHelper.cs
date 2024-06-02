@@ -14,10 +14,14 @@ namespace SicaVS.Helper
     public class JwtHelper
     {
         private readonly Jwt _Jwtoptions;
+        private readonly string _cngStr;
         public JwtHelper(IConfiguration configuration)
         {
             _Jwtoptions = configuration.GetSection("Jwt").Get<Jwt>();
+            _cngStr = configuration.GetConnectionString("cnStr");
+
         } 
+
         public string GenerarToken(InfRegistro registroInf)
         {
             var claims = new[]
@@ -25,10 +29,10 @@ namespace SicaVS.Helper
                  new Claim(JwtRegisteredClaimNames.Sub,_Jwtoptions.Subject),
                  new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
                  // bloquea el sistema new Claim(JwtRegisteredClaimNames.Iat,DateTime.UtcNow.ToString()),
-                 new Claim("Id",registroInf.IdRegistro.ToString()),
-                 new Claim("DocumentoCliente",registroInf.DocumentoCliente),
+                 new Claim("Id",registroInf.Id.ToString()),
+                 new Claim("DocumentoEmisor",registroInf.DocumentoEmisor),
                  new Claim("tokenEmpresa",registroInf.TokenEmpresa),
-                 new Claim("BD",registroInf.datos)
+                 new Claim("BD",registroInf.Basedatos)
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_Jwtoptions.Key));
             var singIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -56,7 +60,6 @@ namespace SicaVS.Helper
                 ValidAudience = _Jwtoptions.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(KeyToken),
             };
-
             try
             {               
                 var principal = tokenHandler.ValidateToken(trimstoken, validationparametros, out SecurityToken validToken);
@@ -65,61 +68,66 @@ namespace SicaVS.Helper
             catch (Exception ex)
             {
                 return null;
-            }
-            
+            }            
         }
 
-        public InfRegistro GetClaimModelo(IEnumerable<Claim> listClaims)
+        public InfRegistro GetClaimValidacion(IEnumerable<Claim> listClaims)
         {
-            InfRegistro rs = new InfRegistro();
-            foreach (var kvp in listClaims)
+            InfRegistro regConexion = new InfRegistro();
+            foreach (var infClaims in listClaims)
             {
-                switch (kvp.Type)
+                switch (infClaims.Type)
                 {
-                    case "DocumentoCliente":
-                        rs.DocumentoCliente = kvp.Value.ToString();
+                    case "DocumentoEmisor":
+                        regConexion.DocumentoEmisor= infClaims.Value.ToString();
                         break;
-                    case "TokenEmpresa":
-                        rs.TokenEmpresa = kvp.Value.ToString();
+                    case "tokenEmpresa":
+                        regConexion.TokenEmpresa = infClaims.Value.ToString();
                         break;
                     case "Id":
-                        rs.Id = Convert.ToInt32(kvp.Value);
+                        regConexion.Id = Convert.ToInt32(infClaims.Value);
                         break;
                     case "BD":
-                        rs.datos = kvp.Value.ToString();
+                        regConexion.Basedatos = infClaims.Value.ToString();
                         break;
                 }
             }
 
-            string cnStr = "Data Source=66.70.229.26;Initial Catalog=Sica_Uramax;User ID=sa;Password=Sica2014;TrustServerCertificate=True;";
+            //string cnStr = "Data Source=66.70.229.26;Initial Catalog=Sica_Uramax;User ID=sa;Password=Sica2014;TrustServerCertificate=True;";
 
-            using (SqlConnection connection = new SqlConnection(cnStr))
+
+            using (SqlConnection connection = new SqlConnection(_cngStr))
             {
                 connection.Open();
-                string query = "SELECT Id, DocumentoCliente, TokenEmpresa, BaseDatos FROM ResolucionesClientes WHERE Id = @Id AND TokenEmpresa = @TokenEmpresa";
+                string query = "SELECT Id, DocumentoEmisor, BaseDatos, TokenEmpresa,TokenCertificado,CorreoEnvioFacturas,CorreoToken " +
+                    "FROM ResolucionesClientesTiposDocumentos WHERE Id = @Id AND TokenEmpresa = @TokenEmpresa";
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-                    command.Parameters.AddWithValue("@Id", rs.Id);
-                    command.Parameters.AddWithValue("@TokenEmpresa", rs.TokenEmpresa);
+                    command.Parameters.AddWithValue("@Id", regConexion.Id);
+                    command.Parameters.AddWithValue("@TokenEmpresa", regConexion.TokenEmpresa);
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            InfRegistro resolucion = new InfRegistro
-                            {
-                                IdRegistro = reader.GetInt32(0),
-                                DocumentoCliente = reader.GetString(1),
-                                TokenEmpresa = reader.GetString(2),
-                                datos = reader.GetString(3)
-                            };
+                            regConexion.DocumentoEmisor= reader.GetString(1);
+                            regConexion.Basedatos = reader.GetString(3);
+                            regConexion.TokenCertificado = reader.GetString(4);
+                            regConexion.CorreoEnvioFacturas= reader.GetString(5);
                             
+                            regConexion.CorreoToken = reader.GetString(6);
+                            regConexion.EstadoConexion = 1;
+                            regConexion.MensajeConexion = "Conectado";
+                        }
+                        else
+                        {
+                            regConexion.EstadoConexion = 0;
+                            regConexion.MensajeConexion ="No se encontro información de valiación, consulte con el proveedor del servicio.";
                         }
                     }
+
                 }
             }
-            return rs;
-
-
+            return regConexion;
         }
         public Dictionary<string, string> GetClaims(IEnumerable<Claim> listClaims)
         {

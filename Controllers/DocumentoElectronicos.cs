@@ -2,20 +2,9 @@
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.Win32;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using SicaVS.Helper;
 using SicaVS.Modelos;
 using System.Data;
-using System.IdentityModel.Tokens.Jwt;
-using System.IO.Compression;
-using System.Runtime.InteropServices;
-using System.Security.Claims;
-using System.Text;
-using System.Xml;
 using System.Xml.Serialization;
 namespace SicaVS.Controllers
 {    
@@ -25,10 +14,12 @@ namespace SicaVS.Controllers
     {
         private readonly JwtHelper _jwtHelper;
         public IConfiguration _configutation;
+        private readonly string _cngStr;
         public DocumentoElectronicos(IConfiguration configuration,JwtHelper jwtHelper)
         {
             _jwtHelper= jwtHelper;
             _configutation = configuration;
+            _cngStr = configuration.GetConnectionString("cnStr");
         }
 
         [Authorize]
@@ -39,41 +30,18 @@ namespace SicaVS.Controllers
             string token = Request.Headers.Where(x => x.Key == "Authorization").FirstOrDefault().Value;
             var claims = _jwtHelper.InfToken(token);                     
             InfRegistro DatosConexion =new InfRegistro();
-            DatosConexion = _jwtHelper.GetClaimModelo(claims);
-            
-            //string connectionString = "Data Source = 66.70.229.26; Initial Catalog = Sica_Uramax; User ID = sa; pwd=Sica2014";
-            string connectionString = "Data Source=66.70.229.26;Initial Catalog=Sica_Uramax;User ID=sa;Password=Sica2014;TrustServerCertificate=True;";
-
-            try
+            DatosConexion = _jwtHelper.GetClaimValidacion(claims);
+            if (DatosConexion.EstadoConexion == 0)
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                return new
                 {
-                    connection.Open();
-
-                    string sql = "SELECT * FROM ResolucionesClientes where IdEstado=1";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.CommandTimeout = 60; // Tiempo de espera del comando en segundos
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            DataTable dataTable = new DataTable();
-                        }
-                    }
-                }
-            }
-            catch (SqlException ex)
-            {
-                Console.WriteLine("Error: " + ex.Message);
-                //MessageBox.Show("Error en la consulta de la base de datos: " + ex.Message);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: " + ex.Message);
-                //MessageBox.Show("Ocurrió un error: " + ex.Message);
+                    success = false,
+                    message = "Datos de validación incorrectos",
+                    result = "No registrar información valida "
+                };
             }
 
-
-
+            //Traer datos
             InvoiceType invoice = new InvoiceType();
             // Asignar valores a las propiedades de InvoiceType
             invoice.ID = new IDType { Value = DocInf.CodigoDocumento };
@@ -105,7 +73,6 @@ namespace SicaVS.Controllers
                 archivoXml = documentoService.GenerarRutaDocumento(DocInf.DocumentoContribuyente, DocInf.DocumentoTipo, DocInf.CodigoDocumento, 2);
                 archivoPdf = documentoService.GenerarRutaDocumento(DocInf.DocumentoContribuyente, DocInf.DocumentoTipo, DocInf.CodigoDocumento, 1);
                 zipFilePath = documentoService.GenerarRutaDocumento(DocInf.DocumentoContribuyente, DocInf.DocumentoTipo, DocInf.CodigoDocumento, 3);
-
             }
             catch (Exception ex)
             {
@@ -132,19 +99,19 @@ namespace SicaVS.Controllers
             };
         }
 
-
         [HttpPost]
         [Route("registrar")]
         public dynamic registrarCliente([FromBody] InfValidacion ValInf)
         {
-            string cnStr = "Data Source=66.70.229.26;Initial Catalog=Sica_Uramax;User ID=sa;Password=Sica2014;TrustServerCertificate=True;";
             string jwtToken = "";
+            string tempToken = "";
+            int SwRegistrarToken = 0;
             try
             {
-                using (SqlConnection connection = new SqlConnection(cnStr))
+                using (SqlConnection connection = new SqlConnection(_cngStr))
                 {
                     connection.Open();
-                    string query = "SELECT Id, DocumentoCliente, TokenEmpresa, BaseDatos FROM ResolucionesClientes WHERE Id = @Id AND TokenEmpresa = @TokenEmpresa";
+                    string query = "SELECT Id, DocumentoEmisor, TokenEmpresa, BaseDatos,TokenRegistro FROM ResolucionesClientes WHERE Id = @Id AND TokenEmpresa = @TokenEmpresa";
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("@Id", ValInf.idRegistro);
@@ -155,12 +122,13 @@ namespace SicaVS.Controllers
                             {
                                 InfRegistro resolucion = new InfRegistro
                                 {
-                                    IdRegistro = reader.GetInt32(0),
-                                    DocumentoCliente = reader.GetString(1),
+                                    Id= reader.GetInt32(0),
+                                    DocumentoEmisor = reader.GetString(1),
                                     TokenEmpresa = reader.GetString(2),
-                                    datos = reader.GetString(3)
+                                    Basedatos = reader.GetString(3),
                                 };
-                                jwtToken = _jwtHelper.GenerarToken(resolucion);
+                                jwtToken = reader.GetString(4);
+                                if (jwtToken.Length<5){jwtToken = _jwtHelper.GenerarToken(resolucion); SwRegistrarToken = 1; }                           
                             }
                             else
                             {
@@ -193,36 +161,27 @@ namespace SicaVS.Controllers
                     result = "Consultar con el proveedor"
                 };
             }
-            using (SqlConnection connection = new SqlConnection(cnStr))
-            {
-                connection.Open();
-                string query = "UPDATE ResolucionesClientes SET TokenRegistro = @TokenRegistro WHERE Id = @Id";
-                using (SqlCommand command = new SqlCommand(query, connection))
+            if(SwRegistrarToken==1) {
+                using (SqlConnection connection = new SqlConnection(_cngStr))
                 {
-                    command.Parameters.AddWithValue("@Id", ValInf.idRegistro);
-                    command.Parameters.AddWithValue("@TokenRegistro", jwtToken);
-                    int result = command.ExecuteNonQuery();
-
-                    if (result > 0)
+                    connection.Open();
+                    string query = "UPDATE ResolucionesClientes SET TokenRegistro = @TokenRegistro WHERE Id = @Id";
+                    using (SqlCommand command = new SqlCommand(query, connection))
                     {
-                        return new
-                        {
-                            success = true,
-                            message = "exito",
-                            result = jwtToken
-                        };
-                    }
-                    else
-                    {
-                        return new
-                        {
-                            success = false,
-                            message = "error interno",
-                            result = ""
-                        };
+                        command.Parameters.AddWithValue("@Id", ValInf.idRegistro);
+                        command.Parameters.AddWithValue("@TokenRegistro", jwtToken);
+                        int result = command.ExecuteNonQuery();
                     }
                 }
             }
+
+            return new
+            {
+                success = true,
+                message = "exito",
+                result = jwtToken
+            };
+
         }
                 
         [HttpGet]
