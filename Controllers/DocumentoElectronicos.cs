@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using SicaVS.Helper;
 using SicaVS.Modelos;
+using SicaVS.Objectos.XMLExtension;
 using System.Data;
 using System.Xml.Serialization;
 namespace SicaVS.Controllers
@@ -42,13 +43,10 @@ namespace SicaVS.Controllers
             }
 
             //Traer datos
-            InvoiceType invoice = new InvoiceType();
+            Objectos.XMLExtension.InvoiceType invoice = new Objectos.XMLExtension.InvoiceType();
             // Asignar valores a las propiedades de InvoiceType
-            invoice.ID = new IDType { Value = DocInf.CodigoDocumento };
-            invoice.IssueDate = new IssueDateType { Value = DateTime.Now };
-            invoice.DocumentCurrencyCode = new DocumentCurrencyCodeType { Value = "USD" };
-            
-            invoice.TotalFactura = new TotalFacturaType { Value = 300000 };
+            invoice.UBLExtensions = [];
+            //invoice.TotalFactura = new TotalFacturaType { Value = 300000 };
             InvoiceHelper invoiceHelper = new InvoiceHelper();
             InvoiceFact item = new InvoiceFact() {
                 Nzona = "01",
@@ -62,17 +60,17 @@ namespace SicaVS.Controllers
             };
             invoiceHelper.CreateInvoice(1212124, item, ref invoice);
             // Crear y asignar las líneas de la factura
-            InvoiceLineType line1 = new InvoiceLineType
-            {
-                ID = new IDType { Value = "1" },
-                LineExtensionAmount = new LineExtensionAmountType { Value = 100.00M }
-            };
+            //InvoiceLineType line1 = new InvoiceLineType
+            //{
+            //    ID = new IDType { Value = "1" },
+            //    LineExtensionAmount = new LineExtensionAmountType { Value = 100.00M }
+            //};
 
-            InvoiceLineType line2 = new InvoiceLineType
-            {
-                ID = new IDType { Value = "2" },
-                LineExtensionAmount = new LineExtensionAmountType { Value = 200.00M }
-            };
+            //InvoiceLineType line2 = new InvoiceLineType
+            //{
+            //    ID = new IDType { Value = "2" },
+            //    LineExtensionAmount = new LineExtensionAmountType { Value = 200.00M }
+            //};
 
             string baseDirectory = @"C:\Clientes";
             DocumentoService documentoService = new DocumentoService(baseDirectory);
@@ -90,9 +88,9 @@ namespace SicaVS.Controllers
                 Console.WriteLine($"Error: {ex.Message}");
             }
             // Asignar las líneas de la factura a la propiedad InvoiceLine de InvoiceType
-            invoice.InvoiceLine = new InvoiceLineType[] { line1, line2 };
-            SaveToXml(invoice, archivoXml);
-            SaveToXml(invoice, archivoPdf);
+            //invoice.InvoiceLine = new InvoiceLineType[] { line1, line2 };
+            //SaveToXml(invoice, archivoXml);
+            //SaveToXml(invoice, archivoPdf);
             ZipServicio documentoZip = new ZipServicio();
             try
             {
@@ -252,9 +250,9 @@ namespace SicaVS.Controllers
                 result = EstadoInf
             };
         }
-        public static void SaveToXml(InvoiceType invoice, string filePath)
+        public static void SaveToXml(Modelos.InvoiceType invoice, string filePath)
         {
-            XmlSerializer serializer = new XmlSerializer(typeof(InvoiceType));
+            XmlSerializer serializer = new XmlSerializer(typeof(Modelos.InvoiceType));
             using (StreamWriter writer = new StreamWriter(filePath))
             {
                 serializer.Serialize(writer, invoice);

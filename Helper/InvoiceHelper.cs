@@ -1,5 +1,6 @@
 ﻿using SicaVS.Modelos;
 using SicaVS.Objectos;
+using SicaVS.Objectos.XMLExtension;
 using System.Data;
 using System.IO.Compression;
 using System.Reflection;
@@ -18,12 +19,12 @@ namespace SicaVS.Helper
         public Parametrizacion parametrizacion = new Parametrizacion();
         public void CrearFactura(InvoiceFact invoice)
         {
-            InvoiceType Invoice = new InvoiceType();
+            Objectos.XMLExtension.InvoiceType Invoice = new Objectos.XMLExtension.InvoiceType();
             bool repetirFactura = true;
             var crearFactura = CreateInvoice(invoice.nfact, invoice, ref Invoice);
         }
 
-        public bool CreateInvoice(int Num, InvoiceFact item, ref InvoiceType Invoice)
+        public bool CreateInvoice(int Num, InvoiceFact item, ref Objectos.XMLExtension.InvoiceType Invoice)
         {
             try
             {
@@ -192,15 +193,96 @@ namespace SicaVS.Helper
                 // QualifyingPropertiesType qualifyingProperties = new QualifyingPropertiesType();
                 //interfazDian.Invoice_MemoryInstance(ref Invoice, ((factind == 1 ? (Datos.detallesIND.Rows.Count == 0 ? Datos.detalles_ESPECIALIND.Rows.Count : Datos.detallesIND.Rows.Count) : (detalles.Rows.Count == 0 ? detallesesp.Rows.Count : detalles.Rows.Count))), true, retnames, "COP", lineasadicionales, checkBox1.Checked);
                 // Variables
-                /*Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.InvoiceControl.InvoiceAuthorization.Value = "InvoiceAuthorization";
-                Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.InvoiceControl.AuthorizationPeriod.StartDate.Value = DateTime.Now.AddDays(1);
-                Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.InvoiceControl.AuthorizationPeriod.EndDate.Value = DateTime.Now.AddDays(2);
-                Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.InvoiceControl.AuthorizedInvoices.Prefix.Value = "PREF01";
-                Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.InvoiceControl.AuthorizedInvoices.From.Value = "PREF01";
-                Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.InvoiceControl.AuthorizedInvoices.To.Value = "PREF01TO";
-                Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.InvoiceSource.IdentificationCode.Value = "038745145";
-                Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.SoftwareProvider.ProviderID.Value = "900-1545-112.06";
-                Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.SoftwareProvider.SoftwareID.Value = "01";*/
+                Invoice = new Objectos.XMLExtension.InvoiceType
+                {
+                    UBLExtensions = new UBLExtensionType[]
+                    {
+                     new UBLExtensionType
+                     {
+                         ExtensionContent = new ExtensionContentType
+                         {
+                             DianExtensions = new DianExtensionsType
+                             {
+                                 InvoiceControl = new InvoiceControlType
+                                 {
+                                     InvoiceAuthorization = new InvoiceAuthorizationType() {
+                                         Value = "AutorhizationToken"
+                                     },
+                                     AuthorizationPeriod = new AuthorizationPeriodType
+                                     {
+                                         StartDate = new StartDateType() {
+                                             Value = DateTime.Now
+                                         },
+                                         EndDate = new EndDateType() {
+                                             Value = DateTime.Now.AddDays(3)
+                                         },
+                                     },
+                                     AuthorizedInvoices = new AuthorizedInvoicesType()
+                                     {
+                                         Prefix = new PrefixType() {
+                                             Value = "Value"
+                                         },
+                                         From = new FromType() {
+                                             Value = "vdelue from"
+                                         },
+                                         To = new ToType() {
+                                             Value = "text"
+                                         }
+                                     }
+                                 },
+                                 InvoiceSource = new InvoiceSourceType
+                                 {
+                                     IdentificationCode = new IdentificationCodeType()
+                                     {
+                                         listID = "6",
+                                         listAgencyName = "United Nations Economic Commission for Europe",
+                                         listSchemeURI = "urn:oasis:names:specification:ubl:codelist:gc:CountryIdentificationCode-2.1",
+                                         Value = "CO"
+                                     }
+                                 },
+                                 SoftwareProvider = new SoftwareProviderType
+                                 {
+                                     ProviderID = new ProviderIDType
+                                     {
+                                         schemeID = "4",
+                                         schemeName = "31",
+                                         schemeAgencyID = "195",
+                                         schemeAgencyName = "CO, DIAN (Direccion de Impuestos y Aduanas Nacionales)",
+                                         Value = "900373116"
+                                     },
+                                     SoftwareID = new SoftwareIDType
+                                     {
+                                         schemeAgencyID = "195",
+                                         schemeAgencyName = "CO, DIAN (Direccion de Impuestos y Aduanas Nacionales)",
+                                         Value = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                     }
+                                 },
+                                 SoftwareSecurityCode = new SoftwareSecurityCodeType
+                                 {
+                                     schemeAgencyID = "195",
+                                     schemeAgencyName = "CO, DIAN (Direccion de Impuestos y Aduanas Nacionales)",
+                                     Value = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                 },
+                                 AuthorizationProvider = new AuthorizationProviderType
+                                 {
+                                     AuthorizationProviderID = new AuthorizationProviderIDType
+                                     {
+                                         schemeID = "4",
+                                         schemeName = "31",
+                                         schemeAgencyID = "195",
+                                         schemeAgencyName = "CO, DIAN (Direccion de Impuestos y Aduanas Nacionales)",
+                                         Value = "CO"
+                                     }
+                                 },
+                                 QRCode = new QRCodeType() {
+                                     Value = "https..../"
+                                 }
+                             }
+                         }
+                     }
+                    }
+                };
+
                 // Invoice.UBLExtensions[0].ExtensionContent.DianExtensions.SoftwareSecurityCode.Value = interfazDian.ComputeSha384Hash(parametrizacion.SoftwareID + parametrizacion.Pin + item.PrefijoFact.ToString() + Num.ToString());
 
                 // Inicia Cuerpo de factura
@@ -209,13 +291,13 @@ namespace SicaVS.Helper
                 //Invoice.CustomizationID.Value = ("10");
                 //Invoice.ProfileID.Value = "DIAN 2.1: Factura Electrónica de Venta";
                 // Invoice.ProfileExecutionID.Value = Facturaelectronicadian.Properties.Settings.Default.ambiente.ToLower() == "pruebas" ? "2" : "1";
-                Invoice.ID.Value = item.PrefijoFact.ToString() + Num.ToString();
+                //Invoice.ID.Value = item.PrefijoFact.ToString() + Num.ToString();
                 //Invoice.IssueDate.Value = DateTime.Now;
                 //Invoice.IssueTime.Value = DateTime.Now;
-                Invoice.IssueDate.Value = new DateTime(Convert.ToDateTime(item.Fechaini.ToString()).Year, Convert.ToDateTime(item.Fechaini.ToString()).Month, Convert.ToDateTime(item.Fechaini.ToString()).Day, Convert.ToDateTime(item.UFECHA.ToString()).Hour, Convert.ToDateTime(item.UFECHA.ToString()).Minute, Convert.ToDateTime(item.UFECHA.ToString()).Second);
+                //Invoice.IssueDate.Value = new DateTime(Convert.ToDateTime(item.Fechaini.ToString()).Year, Convert.ToDateTime(item.Fechaini.ToString()).Month, Convert.ToDateTime(item.Fechaini.ToString()).Day, Convert.ToDateTime(item.UFECHA.ToString()).Hour, Convert.ToDateTime(item.UFECHA.ToString()).Minute, Convert.ToDateTime(item.UFECHA.ToString()).Second);
                 //Invoice.IssueTime.Value = Convert.ToDateTime(item.UFECHA.ToString()).Hour.ToString("00") + ":" + Convert.ToDateTime(item.UFECHA.ToString()).Minute.ToString("00") + ":" + Convert.ToDateTime(item.UFECHA.ToString()).Second.ToString("00") + "-05:00";
                 // Invoice.InvoiceTypeCode.Value = (checkBox1.Checked == true ? "03" : (Exportacion ? "02" : "01"));
-                Invoice.DocumentCurrencyCode.Value = parametrizacion.DocumentCurrencyCode;
+                //Invoice.DocumentCurrencyCode.Value = parametrizacion.DocumentCurrencyCode;
 
                 /*if (Invoice.InvoiceTypeCode.Value == "03")
                 {
@@ -1049,9 +1131,9 @@ namespace SicaVS.Helper
             }
         }
 
-        public void XmlSerializeToFile(InvoiceType Invoice, XmlSerializerNamespaces namespaces, string filename)
+        public void XmlSerializeToFile(Objectos.XMLExtension.InvoiceType Invoice, XmlSerializerNamespaces namespaces, string filename)
         {
-            var serializer = new XmlSerializer(typeof(InvoiceType));
+            var serializer = new XmlSerializer(typeof(Objectos.XMLExtension.InvoiceType));
             using (var stream = new StreamWriter(filename))
                 serializer.Serialize(stream, Invoice, namespaces);
         }
